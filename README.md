@@ -19,6 +19,7 @@ About 14 million records across 4 tables, analysed entirely in SQL.
 - **Refusals are concentrated.** Three anonymised reason codes explain 92.3% of refusals; `HC` alone is 59.5%.
 - **Approved amounts follow product logic.** Cash loans are never reduced and typically come out about 10% above the request; consumer loans are often slightly below it; revolving limits match the request 98% of the time.
 - **Lateness is common but short.** 91.3% of instalments are paid on or before the due date, and 96.5% of late instalments are settled within 30 days.
+- **Pricing lines up with behaviour.** Instalments on high-interest loans are paid late 13.4% of the time versus 7.8% for the lowest band, and 30+ days late 3.3x as often. Cash loans are paid late most often (12.2%).
 - **Past behaviour signals default, and the signals stack.** Default rises from 7.07% (never refused) to 14.09% (refused 5+ times), and from 6.80% (never late) to 12.34% (late on over 25% of instalments). Customers with both warning signs default at 12.32%, twice the 6.11% of customers with neither. Overall default rate: 8.07%.
 
 ---
@@ -175,9 +176,29 @@ When consumer loans come in below the request, 84% of reductions are under 20%, 
 
 The due amount is repeated on every part of a split payment, so the per-instalment version uses `MAX(amt_instalment)` for the amount due and `SUM(amt_payment)` for the amount paid.
 
+**Q7. Does lateness differ by loan type and interest band?** (payments joined to their application)
+
+| Loan type | Instalments | Early | On due day | 1 to 30 days late | 30+ days late |
+|---|---|---|---|---|---|
+| Consumer | 4,535,996 | 84.98% | 5.89% | 8.76% | 0.38% |
+| Cash | 2,955,478 | 79.15% | 8.61% | 12.01% | 0.23% |
+| Revolving | 2,537,855 | 34.59% | 60.40% | 4.81% | 0.20% |
+| Not linked (orphan) | 994,715 | 33.75% | 61.03% | 4.78% | 0.44% |
+
+Revolving loans are mostly paid exactly on the due day, a card-like rhythm. The orphan payments follow almost the same profile, which suggests the loans missing from the application file are mostly revolving or card-style accounts (a hypothesis; the data does not label them).
+
+| Interest band | Instalments | Any lateness | 30+ days late |
+|---|---|---|---|
+| High | 2,275,630 | 13.38% | 0.53% |
+| Middle | 2,475,281 | 10.19% | 0.25% |
+| Low (normal) | 1,966,158 | 8.09% | 0.23% |
+| Low (promotional) | 774,405 | 7.77% | 0.16% |
+
+Lateness rises with the interest band, so the lender's pricing lines up with how borrowers later behave. Rows with an unknown band (`XNA`) are excluded.
+
 ### Part C: Past behaviour vs current default (all tables)
 
-**Q7. Past refusals vs default** (one row per customer, `LEFT JOIN` keeps customers with no history)
+**Q8. Past refusals vs default** (one row per customer, `LEFT JOIN` keeps customers with no history)
 
 | Refusal history | Customers | Default rate |
 |---|---|---|
@@ -187,7 +208,7 @@ The due amount is repeated on every part of a split payment, so the per-instalme
 | Refused 2 to 4 times | 41,502 | 10.88% |
 | Refused 5+ times | 12,258 | 14.09% |
 
-**Q8. Late-payment history vs default, and both signals together**
+**Q9. Late-payment history vs default, and both signals together**
 
 | Share of instalments paid late | Customers | Default rate |
 |---|---|---|
@@ -245,8 +266,8 @@ loan-approval-repayment-analytics/
 │   └── 01_indexes.sql
 ├── 05_analysis/
 │   ├── 01_approval_funnel.sql        # Q1 to Q4
-│   ├── 02_repayment_behaviour.sql    # Q5, Q6
-│   └── 03_history_vs_default.sql     # Q7, Q8
+│   ├── 02_repayment_behaviour.sql    # Q5 to Q7
+│   └── 03_history_vs_default.sql     # Q8, Q9
 └── README.md
 ```
 
